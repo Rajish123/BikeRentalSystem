@@ -48,3 +48,9 @@ class LogoutSerializer(serializers.Serializer):
         except TokenError:
             # if we cant save it in blacklis
             self.fail('bad_token')
+
+class ChangePasswordSerializer(serializers.Serializer):
+    model = User
+
+    old_password = serializers.CharField(required = True)
+    new_password = serializers.CharField(required = True)

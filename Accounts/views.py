@@ -6,7 +6,7 @@ from rest_framework import generics,status,permissions,mixins
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializer import RegisterSerializer,UserSerializer,LogoutSerializer
+from .serializer import RegisterSerializer,UserSerializer,LogoutSerializer,ChangePasswordSerializer
 
 # Create your views here.
 
@@ -44,3 +44,33 @@ class LogutView(generics.GenericAPIView):
         serializer.is_valid(raise_exception = True)
         serializer.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class ChangePasswordView(generics.UpdateAPIView):
+    serializer_class = ChangePasswordSerializer
+    model = User
+
+    def get_object(self,queryset = None):
+        obj = self.request.user
+        return obj
+
+    def update(self,request,*args,**kwargs):
+        self.object = self.get_object()
+        serializer = self.get_serializer(data = request.data)
+        if serializer.is_valid():
+        
+            if not self.object.check_password(serializer.data.get('old_password')):
+                return Response({
+                    'status':status.HTTP_400_BAD_REQUEST,
+                    'message':'Wrong Password'
+                })
+            self.object.set_password(serializer.data.get('new_password'))
+            self.object.save()
+            response = {
+                'status':status.HTTP_202_ACCEPTED,
+                'message':'Password Changed Successfully',
+                'data':serializer.data
+            }
+            return Response(response)
+        
+        return Response(serializer.errors)
+

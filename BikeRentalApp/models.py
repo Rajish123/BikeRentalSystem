@@ -31,4 +31,49 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save,sender = User)
 def save_user_profile(sender,instance,**kwargs):
     instance.profile.save()
-    
+
+class Category(models.Model):
+    TYPE = (
+        ('bike','bike'),
+        ('scooty','scooty')
+    )
+    type = models.CharField(max_length=25,choices=TYPE)
+    company = models.CharField(max_length = 30)
+
+    def __str__(self):
+        return f"{self.type}-->{self.company}"
+
+class Vehicle(models.Model):
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    model_name = models.CharField(max_length=30)
+    colour =models.CharField(max_length=30)
+    booked = models.BooleanField(default=False)
+    number_plate = models.IntegerField()
+    review = models.TextField(max_length=250)
+    rate = models.FloatField()
+    created_at = models.DateTimeField(auto_now_add = True)
+    updated_at = models.DateTimeField(auto_now = True)
+
+    def __str__(self):
+        return f"{self.model_name}-->{self.category.type}"  
+
+class RentVehicle(models.Model):
+    rental_type = (
+        ('Hourly','Hourly'),
+        ('Daily','Daily'),
+        ('Weekly','Weekly'),
+    )
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
+    renttype = models.CharField(max_length = 25,choices=rental_type)
+    duration = models.IntegerField()
+    license_number = models.BigIntegerField()
+    license = models.FileField(upload_to='document/')
+    created_at = models.DateTimeField(auto_now_add = True)
+    updated_at = models.DateTimeField(auto_now = True)
+
+    def __str__(self):
+        return f"{self.user.username}-{self.vehicle.model_name}"
+
+
+
