@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from django.contrib.auth.models import User
 
-from .models import Profile,Category
+from .models import Profile,Category,Vehicle
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only = True)
@@ -13,7 +13,16 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class Category(serializers.ModelSerializer):
+class CategorySerializer(serializers.ModelSerializer):
+    vehicles = serializers.StringRelatedField(many = True, read_only = True)
+    
     class Meta:
         model = Category
+        fields = ['type','image','vehicles']
+
+class VehicleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Vehicle
         fields = '__all__'
+    
