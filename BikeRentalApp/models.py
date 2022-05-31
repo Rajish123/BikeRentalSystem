@@ -1,3 +1,4 @@
+from distutils.command.upload import upload
 from django.db import models
 from django.contrib.auth.models import User
 from phonenumber_field.modelfields import PhoneNumberField
@@ -38,24 +39,27 @@ class Category(models.Model):
         ('scooty','scooty')
     )
     type = models.CharField(max_length=25,choices=TYPE)
-    company = models.CharField(max_length = 30)
+    image = models.ImageField(upload_to = 'category', default = 'default.jpg')
 
     def __str__(self):
-        return f"{self.type}-->{self.company}"
+        return f"{self.type}"
 
 class Vehicle(models.Model):
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    # site = models.ForeignKey(Site, to_field='id', on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE,related_name='vehicles')
+    company = models.CharField(max_length = 30)
     model_name = models.CharField(max_length=30)
     colour =models.CharField(max_length=30)
     booked = models.BooleanField(default=False)
     number_plate = models.IntegerField()
-    review = models.TextField(max_length=250)
+    review = models.TextField(max_length=250,null=True,blank=True)
     rate = models.FloatField()
     created_at = models.DateTimeField(auto_now_add = True)
     updated_at = models.DateTimeField(auto_now = True)
+    image = models.ImageField(upload_to = 'vehicle',default = 'default.jpg')
 
     def __str__(self):
-        return f"{self.model_name}-->{self.category.type}"  
+        return f"{self.company}-->{self.model_name}"  
 
 class RentVehicle(models.Model):
     rental_type = (
@@ -63,14 +67,15 @@ class RentVehicle(models.Model):
         ('Daily','Daily'),
         ('Weekly','Weekly'),
     )
-    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    user = models.ForeignKey(User,on_delete=models.CASCADE,related_name='uservehicle')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
     renttype = models.CharField(max_length = 25,choices=rental_type)
     duration = models.IntegerField()
     license_number = models.BigIntegerField()
     license = models.FileField(upload_to='document/')
-    created_at = models.DateTimeField(auto_now_add = True)
-    updated_at = models.DateTimeField(auto_now = True)
+    rented_at = models.DateTimeField(auto_now_add = True)
+    returned_at = models.DateTimeField(auto_now = True)
+    returned = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username}-{self.vehicle.model_name}"
