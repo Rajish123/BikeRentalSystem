@@ -1,3 +1,4 @@
+from pkg_resources import require
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
@@ -44,7 +45,8 @@ class LogoutSerializer(serializers.Serializer):
         # once we have token, we need refreshtoken to blacklist the token
         try:
             # request our token
-            RefreshToken(self.token)
+            token_to_blacklist = RefreshToken(self.token)
+            token_to_blacklist.blacklist()
         except TokenError:
             # if we cant save it in blacklis
             self.fail('bad_token')

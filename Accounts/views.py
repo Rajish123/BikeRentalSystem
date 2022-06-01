@@ -25,7 +25,7 @@ class RegisterView(generics.GenericAPIView):
             'status':status.HTTP_201_CREATED,
             'message':'User successfully created',
             'refresh': str(refresh),
-        '   access': str(refresh.access_token),
+            'access': str(refresh.access_token),
         })
 
 # Simple JWT blacklist app implements its outstanding and blacklisted token lists using two models: OutstandingToken and BlacklistedToken. 
@@ -43,7 +43,11 @@ class LogutView(generics.GenericAPIView):
         serializer = self.serializer_class(data = request.data)
         serializer.is_valid(raise_exception = True)
         serializer.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({
+            'status':status.HTTP_200_OK,
+            'message':'Successful Logout'
+
+        })
 
 class ChangePasswordView(generics.UpdateAPIView):
     serializer_class = ChangePasswordSerializer

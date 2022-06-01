@@ -8,7 +8,7 @@ from rest_framework import generics,permissions,status
 from rest_framework.permissions import IsAuthenticated,IsAdminUser
 from rest_framework.response import Response
 
-from .serializer import ProfileSerializer,CategorySerializer,VehicleSerializer
+from .serializer import ProfileSerializer,CategorySerializer,VehicleSerializer, RentBikeSerializer
 from .models import *
 
 # Create your views here.
@@ -160,6 +160,25 @@ class UpdatedDetailVehicleView(generics.RetrieveUpdateAPIView):
                 'status':status.HTTP_404_NOT_FOUND,
                 'message':'Vehicle with this id does not exist. '
             })
+
+class RentBike(generics.GenericAPIView):
+    permissions_classes = ('permissions.IsAuthenticated', )
+    serializer_class = RentBikeSerializer
+
+    def post(self,request,pk):
+        user = request.user
+        vehicle = Vehicle.objects.get(pk = pk)
+        serializer = self.serializer_class(data= request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=user,vehicle=vehicle)
+        vehicle.booked = True
+        vehicle.save()
+        return Response({
+            'status':status.HTTP_201_CREATED,
+            'data':serializer.data,
+            'message':'Rented successfully'
+        })
+
 
 
 

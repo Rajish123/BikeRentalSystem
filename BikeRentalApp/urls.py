@@ -6,7 +6,8 @@ from .views import (
     CreateReadCategoryView,
     UpdateCategoryView,
     CreateReadVehicleView,
-    UpdatedDetailVehicleView
+    UpdatedDetailVehicleView,
+    RentBike
 )
 
 urlpatterns = [
@@ -14,9 +15,9 @@ urlpatterns = [
     path('update_profile/', UpdateProfile.as_view(),name = 'update-profile'),
     path('category/',CreateReadCategoryView.as_view(),name = 'category'),
     path('update_category/<str:pk>/',UpdateCategoryView.as_view(),name = 'update-category'),
-
     # in get method need vehicle id to get vehicles
     # need category id to add vehicles
     path('vehicle/<str:id>/',CreateReadVehicleView.as_view(),name = 'vehicle'),
-    path('update_vehicle/<str:pk>/',UpdatedDetailVehicleView.as_view(),name = 'update-vehicle')
+    path('update_vehicle/<str:pk>/',UpdatedDetailVehicleView.as_view(),name = 'update-vehicle'),
+    path('rent_bike/<str:pk>/',RentBike.as_view(), name = 'rent-bike')
 ]

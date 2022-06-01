@@ -47,9 +47,9 @@ class Category(models.Model):
 class Vehicle(models.Model):
     # site = models.ForeignKey(Site, to_field='id', on_delete=models.CASCADE)
     category = models.ForeignKey(Category, on_delete=models.CASCADE,related_name='vehicles')
-    company = models.CharField(max_length = 30)
-    model_name = models.CharField(max_length=30)
-    colour =models.CharField(max_length=30)
+    company = models.CharField(max_length = 25)
+    model_name = models.CharField(max_length=25)
+    colour =models.CharField(max_length=25)
     booked = models.BooleanField(default=False)
     number_plate = models.IntegerField()
     review = models.TextField(max_length=250,null=True,blank=True)
@@ -57,6 +57,7 @@ class Vehicle(models.Model):
     created_at = models.DateTimeField(auto_now_add = True)
     updated_at = models.DateTimeField(auto_now = True)
     image = models.ImageField(upload_to = 'vehicle',default = 'default.jpg')
+
 
     def __str__(self):
         return f"{self.company}-->{self.model_name}"  
