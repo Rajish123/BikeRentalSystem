@@ -45,6 +45,10 @@ class Category(models.Model):
         return f"{self.type}"
 
 class Vehicle(models.Model):
+    status = (
+        ('available','available'),
+        ('not-available','not-available')
+    )
     # site = models.ForeignKey(Site, to_field='id', on_delete=models.CASCADE)
     category = models.ForeignKey(Category, on_delete=models.CASCADE,related_name='vehicles')
     company = models.CharField(max_length = 25)
@@ -57,6 +61,7 @@ class Vehicle(models.Model):
     created_at = models.DateTimeField(auto_now_add = True)
     updated_at = models.DateTimeField(auto_now = True)
     image = models.ImageField(upload_to = 'vehicle',default = 'default.jpg')
+    vehicle_status = models.CharField(max_length=25, choices=status)
 
 
     def __str__(self):
@@ -80,6 +85,35 @@ class RentVehicle(models.Model):
 
     def __str__(self):
         return f"{self.user.username}-{self.vehicle.model_name}"
+
+
+# new
+# class Bill(models.Model):
+#     rented_vehicle = models.ForeignKey(RentVehicle,on_delete = models.CASCADE)
+#     returned_at = models.DateTimeField(auto_now_add = True)
+#     total_bill = models.FloatField()
+
+#     def save(self,*args,**kwargs):
+#         rented_date = self.rented_vehicle.rented_at
+#         if self.rented_vehicle.rental_type == 'Hourly':
+#             total_bill = 100
+#         elif self.rented_vehicle.rental_type == 'Daily':
+#             total_bill = 200
+#         elif self.rented_vehicle.rental_type == 'Weekly':
+#             total_bill = 300
+            
+#         super(Bill,self).save(*args,**kwargs)
+    
+#     def __str__(self):
+#         return f"{self.rented_vehicle.user.username}-->{self.total_bill}"
+
+
+
+
+
+
+
+
 
 
 

@@ -1,6 +1,5 @@
 from django.contrib import admin
 
-from BikeRentalApp.views import RentBike
 from .models import *
 
 # Register your models here.

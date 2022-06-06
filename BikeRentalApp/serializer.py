@@ -26,8 +26,10 @@ class VehicleSerializer(serializers.ModelSerializer):
         model = Vehicle
         fields = '__all__'
 
-class RentBikeSerializer(serializers.ModelSerializer):
+class RentVehicleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RentVehicle
         fields = '__all__'
+
+        

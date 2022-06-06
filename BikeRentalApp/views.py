@@ -8,8 +8,11 @@ from rest_framework import generics,permissions,status
 from rest_framework.permissions import IsAuthenticated,IsAdminUser
 from rest_framework.response import Response
 
-from .serializer import ProfileSerializer,CategorySerializer,VehicleSerializer, RentBikeSerializer
+from .serializer import ProfileSerializer,CategorySerializer,VehicleSerializer, RentVehicleSerializer
 from .models import *
+from .utils import Util
+from decouple import config
+
 
 # Create your views here.
 class ViewProfile(generics.GenericAPIView):
@@ -107,9 +110,9 @@ class CreateReadVehicleView(generics.GenericAPIView):
                 'message':'Category of this id doesnot exist'
             })
 
-    def post(self,request,pk):
+    def post(self,request,id):
         try:
-            queryset = Category.objects.get(pk=pk)
+            queryset = Category.objects.get(id = id)
             serializer = self.serializer_class(data= request.data)
             serializer.is_valid(raise_exception = True)
             serializer.save(category = queryset)
@@ -131,9 +134,7 @@ class UpdatedDetailVehicleView(generics.RetrieveUpdateAPIView):
     def get(self,request,pk):
         try:
             vehicle = Vehicle.objects.get(pk = pk)
-            serializer = self.serializer_class(data = request.data)
-            serializer.is_valid(raise_exception = True)
-            serializer.save()
+            serializer = self.serializer_class(vehicle)
             return Response({
                 'status':status.HTTP_200_OK,
                 'data':serializer.data
@@ -161,9 +162,10 @@ class UpdatedDetailVehicleView(generics.RetrieveUpdateAPIView):
                 'message':'Vehicle with this id does not exist. '
             })
 
-class RentBike(generics.GenericAPIView):
+class RentVehicleView(generics.GenericAPIView):
+    
     permissions_classes = ('permissions.IsAuthenticated', )
-    serializer_class = RentBikeSerializer
+    serializer_class = RentVehicleSerializer
 
     def post(self,request,pk):
         user = request.user
@@ -172,12 +174,92 @@ class RentBike(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save(user=user,vehicle=vehicle)
         vehicle.booked = True
+        vehicle.vehicle_status = 'not-available'
         vehicle.save()
+        email_body = "You have successfully rented vehicle."
+        data = {
+            'email_body':email_body,
+            'to_email':[user.email, ],
+            'from_email':config('EMAIL_HOST_USER'),
+            'email_subject':'Rent vehicles'
+        }
+        Util.send_email(data)
         return Response({
             'status':status.HTTP_201_CREATED,
             'data':serializer.data,
             'message':'Rented successfully'
         })
+
+class UpdateDetailRentedVehicle(generics.RetrieveUpdateAPIView):
+    permissions_classes = ('permissions.IsAuthenticated', )
+    serializer_class = RentVehicleSerializer
+
+    def get(self,request,pk):
+        try:
+            rented_vehicle = RentVehicle.objects.get(pk = pk)
+            serializer = self.serializer_class(rented_vehicle)
+            return Response({
+                'status':status.HTTP_200_OK,
+                'data':serializer.data
+            })
+        except ObjectDoesNotExist:
+            return Response({
+                'status':status.HTTP_404_NOT_FOUND,
+                'message':'No vehicle is booked with this id'
+            })
+            
+    def put(self,request,pk):
+        try:
+            rented_vehicle = RentVehicle.objects.get(pk = pk)
+            serializer = self.serializer_class(rented_vehicle, data = request.data)
+            serializer.is_valid(raise_exception =True)
+            serializer.save()
+            return Response({
+                'status':status.HTTP_200_OK,
+                'data':serializer.data,
+                'message':'Update Successful'
+            })
+        except ObjectDoesNotExist:
+            return Response({
+                'status':status.HTTP_404_NOT_FOUND,
+                'message':'No vechile seems to rented with this id'
+            })
+
+class CancelBooking(generics.GenericAPIView):
+    permissions_classes = (permissions.IsAuthenticated)
+    serializer_class = RentVehicleSerializer
+
+    def patch(self,request,pk):
+        try:
+            rented_vehicle = RentVehicle.objects.get(pk = pk)
+            serializer = self.serializer_class(rented_vehicle,data = request.data, partial = True)
+            serializer.is_valid(raise_exception = True)
+            rented_vehicle.vehicle.booked = False
+            rented_vehicle.vehicle.vehicle_status = 'available'
+            rented_vehicle.vehicle.save()
+            serializer.save()
+            return Response({
+                'status':status.HTTP_200_OK,
+                'data':serializer.data,
+                'message':"Booking Cancel Successful",
+            })
+        except ObjectDoesNotExist:
+            return Response({
+                'status':status.HTTP_404_NOT_FOUND,
+                'message':'You have not rented vehicle with this id'
+            })
+        
+# class ReturnVehicleView(generics.GenericAPIView):
+#     permissions_classes = (permissions.IsAuthenticated, )
+#     serializer_class = RentVehicleSerializer
+
+#     def pat
+
+            
+
+
+
+
 
 
 
