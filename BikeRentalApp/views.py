@@ -3,6 +3,7 @@ from unittest.util import three_way_cmp
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from datetime import datetime 
 
 from rest_framework import generics,permissions,status
 from rest_framework.permissions import IsAuthenticated,IsAdminUser
@@ -87,6 +88,29 @@ class UpdateCategoryView(generics.RetrieveUpdateAPIView):
             return Response({
                 'status':status.HTTP_404_NOT_FOUND,
                 'message':'category with this id does not exist. '
+            })
+
+class AvailableVehicles(generics.GenericAPIView):
+    serializer_class = VehicleSerializer
+
+    def get(self,request,pk):
+        try:
+            category = Category.objects.get(pk = pk)
+            queryset = category.vehicles.filter(booked = False)
+            if queryset.exists():
+                serializer = self.serializer_class(queryset,many = True)
+                return Response({
+                    'status':status.HTTP_200_OK,
+                    'data':serializer.data,
+                    'rate':serializer.data['rate'],
+                })
+            else:
+                return Response({
+                    'status':status.HTTP_204_NO_CONTENT
+                })
+        except ObjectDoesNotExist:
+            return Response({
+                'status':status.HTTP_404_NOT_FOUND,
             })
 
 class CreateReadVehicleView(generics.GenericAPIView):
@@ -232,28 +256,55 @@ class CancelBooking(generics.GenericAPIView):
     def patch(self,request,pk):
         try:
             rented_vehicle = RentVehicle.objects.get(pk = pk)
-            serializer = self.serializer_class(rented_vehicle,data = request.data, partial = True)
-            serializer.is_valid(raise_exception = True)
-            rented_vehicle.vehicle.booked = False
-            rented_vehicle.vehicle.vehicle_status = 'available'
-            rented_vehicle.vehicle.save()
-            serializer.save()
-            return Response({
-                'status':status.HTTP_200_OK,
-                'data':serializer.data,
-                'message':"Booking Cancel Successful",
-            })
+            if rented_vehicle.rented_at.time().hour > 12:
+                return Response({
+                    'status':status.HTTP_403_FORBIDDEN,
+                    'message':"Sorry!you cant cancel booking now."
+                })
+            else:
+                serializer = self.serializer_class(rented_vehicle,data = request.data, partial = True)
+                serializer.is_valid(raise_exception = True)
+                rented_vehicle.vehicle.booked = False
+                rented_vehicle.vehicle.vehicle_status = 'available'
+                rented_vehicle.vehicle.save()
+                serializer.save()
+                return Response({
+                    'status':status.HTTP_200_OK,
+                    'data':serializer.data,
+                    'message':"Booking Cancel Successful",
+                })
         except ObjectDoesNotExist:
             return Response({
                 'status':status.HTTP_404_NOT_FOUND,
                 'message':'You have not rented vehicle with this id'
             })
         
-# class ReturnVehicleView(generics.GenericAPIView):
-#     permissions_classes = (permissions.IsAuthenticated, )
-#     serializer_class = RentVehicleSerializer
+class ReturnVehicleView(generics.GenericAPIView):
+    permissions_classes = (permissions.IsAuthenticated, )
+    serializer_class = RentVehicleSerializer
 
-#     def pat
+    def post(self,request,pk):
+        try:
+            rented_vehicle = RentVehicle.objects.get(pk = pk)
+            rented_vehicle.returned = True
+            # serializer = self.serializer_class(rented_vehicle,data = request.data)
+            # serializer.is_valid(raise_exception = True)
+            rented_vehicle.vehicle.booked = False
+            rented_vehicle.vehicle.vehicle_status = 'available'
+            rented_vehicle.vehicle.save()
+            rented_vehicle.save()
+            # serializer.save()
+            return Response({
+                'status':status.HTTP_200_OK,
+                # 'data':serializer.data,
+                'message':"Thank you.Please Visit Again."
+            })
+        except ObjectDoesNotExist:
+            return Response({
+                'status':status.HTTP_404_NOT_FOUND,
+                'message':'No rented vehicles found.Please check id'
+            })
+
 
             
 

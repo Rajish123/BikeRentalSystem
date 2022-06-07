@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    ReturnVehicleView,
     UpdateProfile,
     ViewProfile,
     CreateReadCategoryView,
@@ -10,7 +11,8 @@ from .views import (
     RentVehicleView,
     UpdateDetailRentedVehicle,
     CancelBooking,
-    # ReturnVehicleView,
+    ReturnVehicleView,
+    AvailableVehicles,
 )
 
 urlpatterns = [
@@ -24,6 +26,8 @@ urlpatterns = [
     path('update_category/<str:id>/',UpdateCategoryView.as_view(),name = 'update-category'),
     # in get method need vehicle id to get vehicles
     # need category id to add vehicles
+    path('all_vehicles/<str:pk>/',AvailableVehicles.as_view(),name = 'all-vehicles'),
+    
     #checked
     path('vehicle/<str:id>/',CreateReadVehicleView.as_view(),name = 'vehicle'),
     #checked
@@ -36,5 +40,8 @@ urlpatterns = [
     # path('return_vehicle/<str:pk>/',ReturnVehicleView.as_view(),name = 'return-vehicle')
     # checked
     # requires rentvehicle id
-    path('cancel_booking/<str:pk>/',CancelBooking.as_view(),name = 'cancel-booking')
+    path('cancel_booking/<str:pk>/',CancelBooking.as_view(),name = 'cancel-booking'),
+    # requires rentvehicle id
+    path('return_vehicle/<str:pk>/',ReturnVehicleView.as_view(),name = 'return-vehicle'),
+
 ]

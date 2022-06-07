@@ -32,4 +32,5 @@ class RentVehicleSerializer(serializers.ModelSerializer):
         model = RentVehicle
         fields = '__all__'
 
+
         
