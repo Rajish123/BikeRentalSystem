@@ -15,6 +15,7 @@ from .utils import Util
 from decouple import config
 
 
+
 # Create your views here.
 class ViewProfile(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated, )
@@ -47,18 +48,9 @@ class UpdateProfile(generics.GenericAPIView):
                 'status':status.HTTP_404_NOT_FOUND
             })
 
-# checked
-class CreateReadCategoryView(generics.GenericAPIView):
-    permission_classes = (permissions.IsAuthenticated, )
+class CreateCategoryView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     serializer_class = CategorySerializer
-
-    def get(self,request):
-        queryset = Category.objects.all()
-        serializer = self.serializer_class(queryset,many=True)
-        return Response({
-            'status':status.HTTP_200_OK,
-            'data':serializer.data
-        })
 
     def post(self,request):
         serializer = self.serializer_class(data = request.data)
@@ -70,8 +62,20 @@ class CreateReadCategoryView(generics.GenericAPIView):
             'message':'Created successfully'
         })
 
+# checked
+class ReadCategoryView(generics.GenericAPIView):
+    serializer_class = CategorySerializer
+
+    def get(self,request):
+        queryset = Category.objects.all()
+        serializer = self.serializer_class(queryset,many=True)
+        return Response({
+            'status':status.HTTP_200_OK,
+            'data':serializer.data
+        })
+
 class UpdateCategoryView(generics.RetrieveUpdateAPIView):
-    permissions_classes = (permissions.IsAuthenticated,permissions.IsAdminUser, )
+    permission_classes = (permissions.IsAuthenticated, permissions.IsAdminUser)
     serializer_class = CategorySerializer
 
     def put(self,request,pk):
@@ -114,26 +118,10 @@ class AvailableVehicles(generics.GenericAPIView):
                 'status':status.HTTP_404_NOT_FOUND,
             })
 
-class CreateReadVehicleView(generics.GenericAPIView):
-    
-    permission_classes = (permissions.IsAuthenticated, )
+class CreateVehicleView(generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated, permissions.IsAdminUser,)
     serializer_class = VehicleSerializer
     lookup_field = 'id'
-
-    def get(self,request,id):
-        try:
-            queryset= Category.objects.get(id=id)
-            vehicles = queryset.vehicles.all()
-            serializer = self.serializer_class(vehicles, many = True)
-            return Response({
-                'status':status.HTTP_200_OK,
-                'data':serializer.data
-            })
-        except ObjectDoesNotExist:
-            return Response({
-                'status':status.HTTP_404_NOT_FOUND,
-                'message':'Category of this id doesnot exist'
-            })
 
     def post(self,request,id):
         try:
@@ -152,23 +140,9 @@ class CreateReadVehicleView(generics.GenericAPIView):
                 'message':'Category of this id does not exist.'
             })
 
-class UpdatedDetailVehicleView(generics.RetrieveUpdateAPIView):
-    permissions_classes = (permissions.IsAuthenticated, )
+class UpdatedVehicleView(generics.RetrieveUpdateAPIView):
+    permission_classes = (permissions.IsAuthenticated, permissions.IsAdminUser,)
     serializer_class = VehicleSerializer
-
-    def get(self,request,pk):
-        try:
-            vehicle = Vehicle.objects.get(pk = pk)
-            serializer = self.serializer_class(vehicle)
-            return Response({
-                'status':status.HTTP_200_OK,
-                'data':serializer.data
-            })
-        except ObjectDoesNotExist:
-            return Response({
-                'status':status.HTTP_404_NOT_FOUND,
-                'message':'Vehicle with this id does not exist. '
-            })
 
     def put(self,request,pk):
         try:
@@ -187,9 +161,26 @@ class UpdatedDetailVehicleView(generics.RetrieveUpdateAPIView):
                 'message':'Vehicle with this id does not exist. '
             })
 
+class DetailVehicleView(generics.RetrieveUpdateAPIView):
+    serializer_class = VehicleSerializer
+
+    def get(self,request,pk):
+        try:
+            vehicle = Vehicle.objects.get(pk = pk)
+            serializer = self.serializer_class(vehicle)
+            return Response({
+                'status':status.HTTP_200_OK,
+                'data':serializer.data
+            })
+        except ObjectDoesNotExist:
+            return Response({
+                'status':status.HTTP_404_NOT_FOUND,
+                'message':'Vehicle with this id does not exist. '
+            })
+
 class RentVehicleView(generics.GenericAPIView):
     
-    permissions_classes = ('permissions.IsAuthenticated', )
+    permission_classes = (permissions.IsAuthenticated, )
     serializer_class = RentVehicleSerializer
 
     def post(self,request,pk):
@@ -222,7 +213,7 @@ class RentVehicleView(generics.GenericAPIView):
             })
 
 class DetailRentedVehicle(generics.RetrieveUpdateAPIView):
-    permissions_classes = ('permissions.IsAuthenticated', )
+    permission_classes = (permissions.IsAuthenticated, )
     serializer_class = RentVehicleSerializer
 
     def get(self,request,pk):
@@ -243,24 +234,27 @@ class CancelBooking(generics.GenericAPIView):
     permissions_classes = (permissions.IsAuthenticated)
     serializer_class = RentVehicleSerializer
 
-    def patch(self,request,pk):
+    def delete(self,request,pk):
         try:
             rented_vehicle = RentVehicle.objects.get(pk = pk)
-            if rented_vehicle.rented_at.time().hour > 12:
+            now = datetime.now()
+            hour_difference = abs(now.time().hour - rented_vehicle.rented_at.time().hour)
+        
+            if hour_difference > 12:
                 return Response({
                     'status':status.HTTP_403_FORBIDDEN,
                     'message':"Sorry!you cant cancel booking now."
                 })
             else:
-                serializer = self.serializer_class(rented_vehicle,data = request.data, partial = True)
-                serializer.is_valid(raise_exception = True)
+                # serializer = self.serializer_class(rented_vehicle,data = request.data, partial = True)
+                # serializer.is_valid(raise_exception = True)
                 rented_vehicle.vehicle.booked = False
                 rented_vehicle.vehicle.vehicle_status = 'available'
                 rented_vehicle.vehicle.save()
-                serializer.save()
+                rented_vehicle.delete()
+                # serializer.save()
                 return Response({
-                    'status':status.HTTP_200_OK,
-                    'data':serializer.data,
+                    'status':status.HTTP_204_NO_CONTENT,
                     'message':"Booking Cancel Successful",
                 })
         except ObjectDoesNotExist:
@@ -348,14 +342,19 @@ class Payment(generics.GenericAPIView):
                 'message':'No bills found.Please check id'
             })
 
-# class DashBoard(generics.GenericAPIView):
-    
+class DashBoard(generics.GenericAPIView):
+    permissions_classes = (permissions.IsAuthenticated, )
+    serializer_class = RentVehicleSerializer
 
+    def get(self,request):
+        user = request.user
+        queryset = user.uservehicle.all()
+        serializer = self.serializer_class(queryset,many = True)
+        return Response({
+            'status':status.HTTP_200_OK,
+            'data':serializer.data
+        })    
 
-
-# for admin
-# class BookingLogs
-# class PaymentLogs
 
             
 
