@@ -1,20 +1,24 @@
 from django.urls import path
 
 from .views import (
+    DashBoard,
     ReturnVehicleView,
     UpdateProfile,
     ViewProfile,
-    CreateReadCategoryView,
+    CreateCategoryView,
+    ReadCategoryView,
     UpdateCategoryView,
-    CreateReadVehicleView,
-    UpdatedDetailVehicleView,
+    CreateVehicleView,
+    UpdatedVehicleView,
+    DetailVehicleView,
     RentVehicleView,
     DetailRentedVehicle,
     CancelBooking,
     ReturnVehicleView,
     AvailableVehicles,
     GenerateBill,
-    Payment
+    Payment,
+    DashBoard
 )
 
 urlpatterns = [
@@ -23,19 +27,23 @@ urlpatterns = [
     #checked
     path('update_profile/', UpdateProfile.as_view(),name = 'update-profile'),
     #checked
-    path('category/',CreateReadCategoryView.as_view(),name = 'category'),
+    path('create_category/',CreateCategoryView.as_view(),name = 'category'),
+    path('category/',ReadCategoryView.as_view(),name = 'category'),
+
+
     #checked
-    path('update_category/<str:id>/',UpdateCategoryView.as_view(),name = 'update-category'),
+    path('update_category/<str:pk>/',UpdateCategoryView.as_view(),name = 'update-category'),
+       #checked
+    path('create_vehicle/<str:id>/',CreateVehicleView.as_view(),name = 'vehicle'),
     # in get method need vehicle id to get vehicles
     # need category id to add vehicles
     # checked
-    path('all_vehicles/<str:pk>/',AvailableVehicles.as_view(),name = 'all-vehicles'),
-    
-    #checked
-    path('vehicle/<str:id>/',CreateReadVehicleView.as_view(),name = 'vehicle'),
+    path('vehicles/<str:pk>/',AvailableVehicles.as_view(),name = 'all-vehicles'),
+    path('update_vehicle/<str:pk>/',UpdatedVehicleView.as_view(),name = 'update-vehicle'),
+
     #checked
     # requires vehicle id
-    path('update_vehicle/<str:pk>/',UpdatedDetailVehicleView.as_view(),name = 'update-vehicle'),
+    path('detail_vehicle/<str:pk>/',DetailVehicleView.as_view(),name = 'update-vehicle'),
     # requries vechile id
     # checked
     path('rent_vehicle/<str:pk>/',RentVehicleView.as_view(), name = 'rent-bike'),
@@ -50,8 +58,10 @@ urlpatterns = [
     # checked
     path('return_vehicle/<str:pk>/',ReturnVehicleView.as_view(),name = 'return-vehicle'),
     # require rentvehicle id
+    # save method not working but working from admin
     path('bill/<str:pk>/', GenerateBill.as_view(),name = 'bill'),
     # require bill id
-    path('payment/<str:pk>/',Payment.as_view(),name = 'payment')
+    path('payment/<str:pk>/',Payment.as_view(),name = 'payment'),
+    path('dashboard/',DashBoard.as_view(),name = 'dashboard')
 
 ]

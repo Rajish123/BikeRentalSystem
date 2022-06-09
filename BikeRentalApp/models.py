@@ -134,40 +134,6 @@ class Bill(models.Model):
     def __str__(self):
         return f"{self.rented_vehicle.user.username}-->{self.total_bill}"
 
-
-
-# @receiver(post_save, sender = Bill)
-# def calculate_bill(sender, instance, created, **kwargs):
-    # if created:
-        # rented_date = instance.rented_vehicle.rented_at
-        # now = datetime.now()
-        # days_difference = now.date() - rented_date.date()
-        # if days_difference.days < 1:
-        #     hour_difference = abs(now.time().hour - rented_date.time().hour)
-        #     instance.total_bill = instance.rented_vehicle.vehicle.rate * hour_difference
-
-        # elif days_difference.days >= 1 and days_difference.days <= 7:
-        #     hour_difference = abs(now.time().hour - rented_date.time().hour)
-        #     time_calculation = days_difference.days * 24
-        #     total_time_rented = time_calculation + hour_difference
-        #     if days_difference.days > 3:
-        #         rate = instance.rented_vehicle.vehicle.rate - 0.10 * instance.rented_vehicle.vehicle.rate
-        #         instance.total_bill = rate * total_time_rented
-        #     else:
-        #         instance.total_bill = instance.rented_vehicle.vehicle.rate * total_time_rented
-
-        # elif days_difference.days > 7:
-        #     hour_difference = abs(now.time().hour - rented_date.time().hour)
-        #     time_calculation = days_difference.days * 24
-        #     total_time_rented = time_calculation + hour_difference
-        #     if days_difference.days > 14:
-        #         rate = instance.rented_vehicle.vehicle.rate - 0.30 * instance.rented_vehicle.vehicle.rate
-        #         instance.total_bill = rate * total_time_rented
-
-        #     else:
-        #         rate = instance.rented_vehicle.vehicle.rate - 0.15 * instance.rented_vehicle.vehicle.rate
-        #         instance.total_bill = rate * total_time_rented
-
 class Payment(models.Model):
     status = (
         ('Unpaid','Unpaid'),
