@@ -9,7 +9,7 @@ from rest_framework import generics,permissions,status
 from rest_framework.permissions import IsAuthenticated,IsAdminUser
 from rest_framework.response import Response
 
-from .serializer import ProfileSerializer,CategorySerializer,VehicleSerializer, RentVehicleSerializer
+from .serializer import ProfileSerializer,CategorySerializer,VehicleSerializer, RentVehicleSerializer, BillSerializer, PaymentSerializer
 from .models import *
 from .utils import Util
 from decouple import config
@@ -47,6 +47,7 @@ class UpdateProfile(generics.GenericAPIView):
                 'status':status.HTTP_404_NOT_FOUND
             })
 
+# checked
 class CreateReadCategoryView(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated, )
     serializer_class = CategorySerializer
@@ -102,11 +103,11 @@ class AvailableVehicles(generics.GenericAPIView):
                 return Response({
                     'status':status.HTTP_200_OK,
                     'data':serializer.data,
-                    'rate':serializer.data['rate'],
                 })
             else:
                 return Response({
-                    'status':status.HTTP_204_NO_CONTENT
+                    'status':status.HTTP_204_NO_CONTENT,
+                    'message':'No vehicles to rent'
                 })
         except ObjectDoesNotExist:
             return Response({
@@ -194,27 +195,33 @@ class RentVehicleView(generics.GenericAPIView):
     def post(self,request,pk):
         user = request.user
         vehicle = Vehicle.objects.get(pk = pk)
-        serializer = self.serializer_class(data= request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(user=user,vehicle=vehicle)
-        vehicle.booked = True
-        vehicle.vehicle_status = 'not-available'
-        vehicle.save()
-        email_body = "You have successfully rented vehicle."
-        data = {
-            'email_body':email_body,
-            'to_email':[user.email, ],
-            'from_email':config('EMAIL_HOST_USER'),
-            'email_subject':'Rent vehicles'
-        }
-        Util.send_email(data)
-        return Response({
-            'status':status.HTTP_201_CREATED,
-            'data':serializer.data,
-            'message':'Rented successfully'
-        })
+        if vehicle.booked == True and vehicle.vehicle_status == 'not-available':
+            return Response({
+                'status':status.HTTP_409_CONFLICT,
+                'message':'Already booked'
+            })
+        else:
+            serializer = self.serializer_class(data= request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(user=user,vehicle=vehicle)
+            vehicle.booked = True
+            vehicle.vehicle_status = 'not-available'
+            vehicle.save()
+            email_body = "You have successfully rented vehicle."
+            data = {
+                'email_body':email_body,
+                'to_email':[user.email, ],
+                'from_email':config('EMAIL_HOST_USER'),
+                'email_subject':'Rent vehicles'
+            }
+            Util.send_email(data)
+            return Response({
+                'status':status.HTTP_201_CREATED,
+                'data':serializer.data,
+                'message':'Rented successfully'
+            })
 
-class UpdateDetailRentedVehicle(generics.RetrieveUpdateAPIView):
+class DetailRentedVehicle(generics.RetrieveUpdateAPIView):
     permissions_classes = ('permissions.IsAuthenticated', )
     serializer_class = RentVehicleSerializer
 
@@ -230,23 +237,6 @@ class UpdateDetailRentedVehicle(generics.RetrieveUpdateAPIView):
             return Response({
                 'status':status.HTTP_404_NOT_FOUND,
                 'message':'No vehicle is booked with this id'
-            })
-            
-    def put(self,request,pk):
-        try:
-            rented_vehicle = RentVehicle.objects.get(pk = pk)
-            serializer = self.serializer_class(rented_vehicle, data = request.data)
-            serializer.is_valid(raise_exception =True)
-            serializer.save()
-            return Response({
-                'status':status.HTTP_200_OK,
-                'data':serializer.data,
-                'message':'Update Successful'
-            })
-        except ObjectDoesNotExist:
-            return Response({
-                'status':status.HTTP_404_NOT_FOUND,
-                'message':'No vechile seems to rented with this id'
             })
 
 class CancelBooking(generics.GenericAPIView):
@@ -305,6 +295,67 @@ class ReturnVehicleView(generics.GenericAPIView):
                 'message':'No rented vehicles found.Please check id'
             })
 
+# save method works in model
+# doesnt get save
+# serializer data dont show rate
+class GenerateBill(generics.GenericAPIView):
+    permissions_classes = (permissions.IsAuthenticated, )
+    serializer_class = BillSerializer
+
+    def post(self,request,pk):
+        try:
+            rented_vehicle = RentVehicle.objects.get(pk = pk)
+            if rented_vehicle.returned == True:
+                serializer = self.serializer_class(data = request.data)
+                serializer.is_valid(raise_exception = True)
+                serializer.save(rented_vehicle = rented_vehicle)
+                return Response({
+                    'status':status.HTTP_201_CREATED,
+                    'data':serializer.data,
+                    'message':'Bill successfully generated'
+                })
+            else:
+                return Response({
+                    'message':'Please return vehicle first'
+                })
+        except ObjectDoesNotExist:
+            return Response({
+                'status':status.HTTP_404_NOT_FOUND,
+                'message':'No rented vehicles found.Please check id'
+            })
+
+class Payment(generics.GenericAPIView):
+    permissions_classes = (IsAuthenticated, )
+    serializer_class = PaymentSerializer
+
+    def post(self,request,pk):
+        try:
+            bill = Bill.objects.get(pk = pk)
+            user = request.user
+            serializer = self.serializer_class(data = request.data)
+            serializer.is_valid(raise_exception = True)
+            serializer.save(bill = bill, paid_by = user)
+            bill.bill_status = 'Paid'
+            bill.save()
+            return Response({
+                'status':status.HTTP_200_OK,
+                # 'data':serializer.data,
+                'message':"Payment Successful"
+            })
+        except ObjectDoesNotExist:
+            return Response({
+                'status':status.HTTP_404_NOT_FOUND,
+                'message':'No bills found.Please check id'
+            })
+
+# class DashBoard(generics.GenericAPIView):
+    
+
+
+
+# for admin
+# class BookingLogs
+# class PaymentLogs
 
             
 

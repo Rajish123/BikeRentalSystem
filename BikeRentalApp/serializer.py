@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from django.contrib.auth.models import User
 
-from .models import Profile,Category,Vehicle,RentVehicle
+from .models import Payment, Profile,Category,Vehicle,RentVehicle,Bill
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only = True)
@@ -31,6 +31,18 @@ class RentVehicleSerializer(serializers.ModelSerializer):
     class Meta:
         model = RentVehicle
         fields = '__all__'
+
+class BillSerializer(serializers.ModelSerializer):
+    payment = serializers.StringRelatedField(many = True, read_only = True)
+    class Meta:
+        model = Bill
+        fields = ['rented_vehicle','returned_at','total_bill','bill_status','payment']
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = '__all__'
+
 
 
         

@@ -3,7 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from phonenumber_field.modelfields import PhoneNumberField
 from django.urls import reverse
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 import uuid as uuid_lib
 from datetime import datetime
@@ -63,8 +63,7 @@ class Vehicle(models.Model):
     created_at = models.DateTimeField(auto_now_add = True)
     updated_at = models.DateTimeField(auto_now = True)
     image = models.ImageField(upload_to = 'vehicle',default = 'default.jpg')
-    vehicle_status = models.CharField(max_length=25, choices=status)
-
+    vehicle_status = models.CharField(max_length=25, choices=status,default='available')
 
     def __str__(self):
         return f"{self.company}-->{self.model_name}"  
@@ -84,90 +83,100 @@ class RentVehicle(models.Model):
     rented_at = models.DateTimeField(auto_now_add = True)
     returned_at = models.DateTimeField(auto_now = True)
     returned = models.BooleanField(default=False)
-    advance_payment = models.FloatField()
 
-    def save(self,*args,**kwargs):
-        if self.rental_type == 'Hourly' and self.advance_payment < self.vehicle.rate * 5:
-            raise ValidationError(f'Advance payment must not be less than {self.vehicle.rate * 5}')
-        elif self.rental_type == 'Daily' and self.advance_payment < self.vehicle.rate * 12:
-            raise ValidationError(f'Advance payment must not be less than {self.vehicle.rate * 12}')
-        elif self.rental_type == 'Weekly' and self.advance_payment < self.vehicle.rate * 24:
-            raise ValidationError(f'Advance payment must not be less than {self.vehicle.rate * 24}')
-
-        super(RentVehicle,self).save(*args,**kwargs)
-    
     def __str__(self):
         return f"{self.user.username}-{self.vehicle.model_name}"
 
 class Bill(models.Model):
+    status = (
+        ('Unpaid','Unpaid'),
+        ('Paid','Paid')
+    )
+
     rented_vehicle = models.ForeignKey(RentVehicle,on_delete = models.CASCADE)
     returned_at = models.DateTimeField(auto_now_add = True)
     total_bill = models.FloatField(default=0)
+    bill_status = models.CharField(max_length=25, choices = status,default = 'Unpaid')
+
 
     def save(self,*args,**kwargs):
         rented_date = self.rented_vehicle.rented_at
         now = datetime.now()
         days_difference = now.date() - rented_date.date()
-        if self.rented_vehicle.rental_type == 'Hourly':
-            if days_difference.days < 1:
-                hour_difference = abs(now.time().hour - rented_date.time().hour)
-                self.total_bill = (self.rented_vehicle.vehicle.rate * hour_difference) - self.rented_vehicle.advance_payment
-            elif days_difference.days >= 1 and days_difference.days <= 7:
-                self.rented_vehicle.rental_type = 'Daily'
-                return self.rented_vehicle.rental_type
-            elif days_difference.days > 7:
-                self.rented_vehicle.rental_type = 'Weekly'
-                return self.rented_vehicle.rental_type
+        if days_difference.days < 1:
+            hour_difference = abs(now.time().hour - rented_date.time().hour)
+            self.total_bill = self.rented_vehicle.vehicle.rate * hour_difference
 
-        elif self.rented_vehicle.rental_type == "Daily":
-            if days_difference.days < 1:
-                self.rented_vehicle.rental_type = "Hourly"
-                return self.rented_vehicle.rental_type
-            elif days_difference.days >= 1 and days_difference.days <= 7:
-                hour_difference = abs(now.time().hour - rented_date.time().hour)
-                time_calculation = days_difference.days * 24
-                total_time_rented = time_calculation + hour_difference
-                if days_difference.days > 3:
-                    rate = self.rented_vehicle.vehicle.rate - 0.10 * self.rented_vehicle.vehicle.rate
-                    self.total_bill = (rate * total_time_rented) - self.rented_vehicle.advance_payment
-                else:
-                    self.total_bill = self.rented_vehicle.vehicle.rate * total_time_rented
-            elif days_difference.days > 7:
-                self.rented_vehicle.rental_type = "Weekly"
-                return self.rented_vehicle.rental_type
-        
-        elif self.rented_vehicle.rental_type == "Weekly":
-            if days_difference.days < 1:
-                self.rented_vehicle.rental_type = "Hourly"
-                return self.rented_vehicle.rental_type
-            elif days_difference.days >= 1 and days_difference.days <= 7:
-                self.rented_vehicle.rental_type = 'Daily'
-                return self.rented_vehicle.rental_type
-            elif days_difference.days > 7:
-                hour_difference = abs(now.time().hour - rented_date.time().hour)
-                time_calculation = days_difference.days * 24
-                total_time_rented = time_calculation + hour_difference
-                if days_difference.days > 14:
-                    rate = self.rented_vehicle.vehicle.rate - 0.30 * self.rented_vehicle.vehicle.rate
-                    self.total_bill = (rate * total_time_rented) - self.rented_vehicle.advance_payment
-                else:
-                    rate = self.rented_vehicle.vehicle.rate - 0.15 * self.rented_vehicle.vehicle.rate
-                    self.total_bill = (rate * total_time_rented) - self.rented_vehicle.advance_payment
+        elif days_difference.days >= 1 and days_difference.days <= 7:
+            hour_difference = abs(now.time().hour - rented_date.time().hour)
+            time_calculation = days_difference.days * 24
+            total_time_rented = time_calculation + hour_difference
+            if days_difference.days > 3:
+                rate = self.rented_vehicle.vehicle.rate - 0.10 * self.rented_vehicle.vehicle.rate
+                self.total_bill = rate * total_time_rented
+            else:
+                self.total_bill = self.rented_vehicle.vehicle.rate * total_time_rented
+
+        elif days_difference.days > 7:
+            hour_difference = abs(now.time().hour - rented_date.time().hour)
+            time_calculation = days_difference.days * 24
+            total_time_rented = time_calculation + hour_difference
+            if days_difference.days > 14:
+                rate = self.rented_vehicle.vehicle.rate - 0.30 * self.rented_vehicle.vehicle.rate
+                self.total_bill = rate * total_time_rented
+
+            else:
+                rate = self.rented_vehicle.vehicle.rate - 0.15 * self.rented_vehicle.vehicle.rate
+                self.total_bill = rate * total_time_rented
+
         super(Bill,self).save(*args,**kwargs)
-    
+
     def __str__(self):
         return f"{self.rented_vehicle.user.username}-->{self.total_bill}"
+
+
+
+# @receiver(post_save, sender = Bill)
+# def calculate_bill(sender, instance, created, **kwargs):
+    # if created:
+        # rented_date = instance.rented_vehicle.rented_at
+        # now = datetime.now()
+        # days_difference = now.date() - rented_date.date()
+        # if days_difference.days < 1:
+        #     hour_difference = abs(now.time().hour - rented_date.time().hour)
+        #     instance.total_bill = instance.rented_vehicle.vehicle.rate * hour_difference
+
+        # elif days_difference.days >= 1 and days_difference.days <= 7:
+        #     hour_difference = abs(now.time().hour - rented_date.time().hour)
+        #     time_calculation = days_difference.days * 24
+        #     total_time_rented = time_calculation + hour_difference
+        #     if days_difference.days > 3:
+        #         rate = instance.rented_vehicle.vehicle.rate - 0.10 * instance.rented_vehicle.vehicle.rate
+        #         instance.total_bill = rate * total_time_rented
+        #     else:
+        #         instance.total_bill = instance.rented_vehicle.vehicle.rate * total_time_rented
+
+        # elif days_difference.days > 7:
+        #     hour_difference = abs(now.time().hour - rented_date.time().hour)
+        #     time_calculation = days_difference.days * 24
+        #     total_time_rented = time_calculation + hour_difference
+        #     if days_difference.days > 14:
+        #         rate = instance.rented_vehicle.vehicle.rate - 0.30 * instance.rented_vehicle.vehicle.rate
+        #         instance.total_bill = rate * total_time_rented
+
+        #     else:
+        #         rate = instance.rented_vehicle.vehicle.rate - 0.15 * instance.rented_vehicle.vehicle.rate
+        #         instance.total_bill = rate * total_time_rented
 
 class Payment(models.Model):
     status = (
         ('Unpaid','Unpaid'),
         ('Paid','Paid')
     )
-    bill = models.ForeignKey(Bill, on_delete=models.CASCADE)
+    bill = models.ForeignKey(Bill, on_delete=models.CASCADE,related_name='payment')
     card_number = models.BigIntegerField(null=True, blank=True)
     total_payment = models.FloatField()
     payment_type = models.CharField(max_length=25, default='cash')
-    payment_status = models.CharField(max_length=25, choices = status,default = 'Paid')
     paid_by = models.CharField(max_length=30)
     paid_date = models.DateTimeField(auto_now_add=True)
 
