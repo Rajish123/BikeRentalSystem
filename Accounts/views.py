@@ -35,6 +35,7 @@ class RegisterView(generics.GenericAPIView):
 # BLACKLIST_AFTER_ROTATION if True, causes refresh tokens submitted to the TokenRefreshView to be added to the blacklist 
 
 # simple jwt is stateless i.e, dont keep user authentication in app's memory
+# body:refresh:key
 class LogutView(generics.GenericAPIView):
     serializer_class = LogoutSerializer
     permission_classes = (permissions.IsAuthenticated, )
