@@ -1,4 +1,5 @@
 from cgitb import lookup
+import email
 from unittest.util import three_way_cmp
 from django.shortcuts import render
 from django.contrib.auth.models import User
@@ -198,7 +199,13 @@ class RentVehicleView(generics.GenericAPIView):
             vehicle.booked = True
             vehicle.vehicle_status = 'not-available'
             vehicle.save()
-            email_body = "You have successfully rented vehicle."
+            email_data = {
+                'rent-type':serializer.data['renttype'],
+                'duration':serializer.data['duration'],
+                'rented_at':serializer.data['rented_at'],
+                'vehicle':serializer.data['vehicle']
+            }
+            email_body = f"The vehicle you rented is {email_data}"
             data = {
                 'email_body':email_body,
                 'to_email':[user.email, ],
@@ -300,9 +307,9 @@ class GenerateBill(generics.GenericAPIView):
         try:
             rented_vehicle = RentVehicle.objects.get(pk = pk)
             if rented_vehicle.returned == True:
-                serializer = self.serializer_class(data = request.data)
+                serializer = self.serializer_class(rented_vehicle, data = request.data)
                 serializer.is_valid(raise_exception = True)
-                serializer.save(rented_vehicle = rented_vehicle)
+                serializer.save()
                 return Response({
                     'status':status.HTTP_201_CREATED,
                     'data':serializer.data,
@@ -317,7 +324,8 @@ class GenerateBill(generics.GenericAPIView):
                 'status':status.HTTP_404_NOT_FOUND,
                 'message':'No rented vehicles found.Please check id'
             })
-
+# eror
+# problem in checking if user_paid_bill is less or greator than total_bill
 class Payment(generics.GenericAPIView):
     permissions_classes = (IsAuthenticated, )
     serializer_class = PaymentSerializer
@@ -328,14 +336,24 @@ class Payment(generics.GenericAPIView):
             user = request.user
             serializer = self.serializer_class(data = request.data)
             serializer.is_valid(raise_exception = True)
-            serializer.save(bill = bill, paid_by = user)
-            bill.bill_status = 'Paid'
-            bill.save()
-            return Response({
-                'status':status.HTTP_200_OK,
-                # 'data':serializer.data,
-                'message':"Payment Successful"
-            })
+
+
+            paid_amount = serializer.validated_data.get('total_payment')
+            total_bills = bill.total_bill
+            if paid_amount < total_bills:
+                return Response({
+                    'message':f"The amount you paid is not enough.anTotal bill is {total_bills}"
+                })
+            else:
+
+                serializer.save(bill = bill, paid_by = user)
+                bill.bill_status = 'Paid'
+                bill.save()
+                return Response({
+                    'status':status.HTTP_200_OK,
+                    # 'data':serializer.data,
+                    'message':"Payment Successful"
+                })
         except ObjectDoesNotExist:
             return Response({
                 'status':status.HTTP_404_NOT_FOUND,
