@@ -1,3 +1,4 @@
+from django.forms import ValidationError
 from rest_framework import serializers,status
 from rest_framework.response import Response
 
@@ -33,16 +34,14 @@ class RentVehicleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class BillSerializer(serializers.ModelSerializer):
-    payment = serializers.StringRelatedField(many = True, read_only = True)
+    # payment = serializers.StringRelatedField(many = True, read_only = True)
     class Meta:
         model = Bill
-        fields = ['rented_vehicle','returned_at','total_bill','bill_status','payment']
+        fields = ['rented_vehicle','returned_at','total_bill','bill_status']
 
 class PaymentSerializer(serializers.ModelSerializer):
+    # payment = serializers.PrimaryKeyRelatedField(many = True, read_only = True)
+
     class Meta:
         model = Payment
         fields = '__all__'
-
-
-
-        

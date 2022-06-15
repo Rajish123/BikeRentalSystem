@@ -85,7 +85,7 @@ class RentVehicle(models.Model):
     returned = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.user.username}-{self.vehicle.model_name}"
+        return f"{self.vehicle}"
 
 class Bill(models.Model):
     status = (

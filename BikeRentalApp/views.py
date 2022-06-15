@@ -342,7 +342,7 @@ class Payment(generics.GenericAPIView):
             total_bills = bill.total_bill
             if paid_amount < total_bills:
                 return Response({
-                    'message':f"The amount you paid is not enough.anTotal bill is {total_bills}"
+                    'message':f"The amount you paid is not enough.Total bill is {total_bills}"
                 })
             else:
 
